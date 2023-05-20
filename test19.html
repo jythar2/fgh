@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pong Game</title>
+    <style>
+        #gameCanvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #001F3F; /* Navy Blue */
+        }
+
+        #scoreboard {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 48px;
+            font-family: Arial, sans-serif;
+            color: #001F3F; /* Navy Blue */
+            background-color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="scoreboard">
+        <span id="leftScore" style="color: #001F3F;"></span> - <span id="rightScore" style="color: #001F3F;"></span>
+    </div>
+
+    <script>
+        // Paddle constants
+        const PADDLE_WIDTH = 10;
+        const PADDLE_HEIGHT = 60;
+        const PADDLE_SPEED = 5;
+
+        // Ball constants
+        const BALL_RADIUS = 10;
+        const BALL_SPEED_X = 3;
+        const BALL_SPEED_Y = 3;
+        const BALL_SPEED_INCREMENT = 0.02;
+
+        // Create canvas and context
+        const canvas = document.getElementById("gameCanvas");
+        const context = canvas.getContext("2d");
+
+        // Create paddles
+        const leftPaddle = {
+            x: 50,
+            y: canvas.height / 2 - PADDLE_HEIGHT / 2,
+            width: PADDLE_WIDTH,
+            height: PADDLE_HEIGHT,
+            dy: 0,
+            score: 0
+        };
+
+        const rightPaddle = {
+            x: canvas.width - 50 - PADDLE_WIDTH,
+            y: canvas.height / 2 - PADDLE_HEIGHT / 2,
+            width: PADDLE_WIDTH,
+            height: PADDLE_HEIGHT,
+            dy: 0,
+            score: 0
+        };
+
+        // Create the ball
+        const ball = {
+            x: canvas.width / 2 - BALL_RADIUS / 2,
+            y: canvas.height / 2 - BALL_RADIUS / 2,
+            radius: BALL_RADIUS,
+            dx: BALL_SPEED_X,
+            dy: BALL_SPEED_Y
+        };
+
+        // Update paddle position
+        function updatePaddlePosition(paddle) {
+            paddle.y += paddle.dy;
+
+            // Limit paddle movement within the canvas
+            if (paddle.y < 0) {
+                paddle.y = 0;
+            } else if (paddle.y + paddle.height > canvas.height) {
+                paddle.y = canvas.height - paddle.height;
+            }
+        }
+
+        // Update ball position
+        function updateBallPosition() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Collision detection with paddles
+            if (
+                ball.x < leftPaddle.x + leftPaddle.width &&
+                ball.y + ball.radius > leftPaddle.y &&
+                ball.y < leftPaddle.y + leftPaddle.height
+            ) {
+                ball.dx *= -1;
+                increaseBallSpeed();
+            } else if (
+                ball.x + ball.radius > rightPaddle.x &&
+                ball.y + ball.radius > rightPaddle.y &&
+                ball.y < rightPaddle.y + rightPaddle.height
+            ) {
+                ball.dx *= -1;
+                increaseBallSpeed();
+            }
+
+            // Collision detection with walls
+            if (ball.y < 0 || ball.y + ball.radius > canvas.height) {
+                ball.dy *= -1;
+            }
+
+            // Score a point and reset ball position if it goes past a paddle
+            if (ball.x < 0) {
+                rightPaddle.score++;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                leftPaddle.score++;
+                resetBall();
+            }
+        }
+
+        // Increase ball speed
+        function increaseBallSpeed() {
+            if (ball.dx > 0) {
+                ball.dx += BALL_SPEED_INCREMENT;
+            } else {
+                ball.dx -= BALL_SPEED_INCREMENT;
+            }
+
+            if (ball.dy > 0) {
+                ball.dy += BALL_SPEED_INCREMENT;
+            } else {
+                ball.dy -= BALL_SPEED_INCREMENT;
+            }
+        }
+
+        // Reset ball position and direction
+        function resetBall() {
+            ball.x = canvas.width / 2 - BALL_RADIUS / 2;
+            ball.y = canvas.height / 2 - BALL_RADIUS / 2;
+            ball.dx = BALL_SPEED_X;
+            ball.dy = BALL_SPEED_Y;
+        }
+
+        // Draw game elements
+        function draw() {
+            // Clear the canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw paddles
+            context.fillStyle = "#FF5555"; /* Lighter shade of red */
+            context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+            context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+
+            // Draw ball
+            context.beginPath();
+            context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, false);
+            context.fillStyle = "#FFFFFF"; /* White */
+            context.fill();
+            context.closePath();
+
+            // Draw segmented lines for the table
+            context.strokeStyle = "#FFFFFF"; /* White */
+            context.setLineDash([5, 5]);
+
+            // Vertical line
+            context.beginPath();
+            context.moveTo(canvas.width / 2, 0);
+            context.lineTo(canvas.width / 2, canvas.height);
+            context.stroke();
+            context.closePath();
+
+            // Horizontal line
+            context.beginPath();
+            context.moveTo(0, canvas.height / 2);
+            context.lineTo(canvas.width, canvas.height / 2);
+            context.stroke();
+            context.closePath();
+
+            // Update scoreboards
+            document.getElementById("leftScore").textContent = leftPaddle.score;
+            document.getElementById("rightScore").textContent = rightPaddle.score;
+        }
+
+        // Keyboard event listeners
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "w" || event.key === "W") {
+                leftPaddle.dy = -PADDLE_SPEED;
+            } else if (event.key === "s" || event.key === "S") {
+                leftPaddle.dy = PADDLE_SPEED;
+            } else if (event.key === "ArrowUp") {
+                rightPaddle.dy = -PADDLE_SPEED;
+            } else if (event.key === "ArrowDown") {
+                rightPaddle.dy = PADDLE_SPEED;
+            }
+        });
+
+        document.addEventListener("keyup", function (event) {
+            if (
+                event.key === "w" ||
+                event.key === "W" ||
+                event.key === "s" ||
+                event.key === "S"
+            ) {
+                leftPaddle.dy = 0;
+            } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                rightPaddle.dy = 0;
+            }
+        });
+
+        // Game loop
+        function gameLoop() {
+            updatePaddlePosition(leftPaddle);
+            updatePaddlePosition(rightPaddle);
+            updateBallPosition();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
